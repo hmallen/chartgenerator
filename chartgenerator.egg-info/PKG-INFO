@@ -1,6 +1,6 @@
 Metadata-Version: 1.0
 Name: chartgenerator
-Version: 0.1
+Version: 0.1a0
 Summary: Candlestick chart generator and support/resistance calculator for market data using Plot.ly and peakutils
 Home-page: UNKNOWN
 Author: Hunter M. Allen
