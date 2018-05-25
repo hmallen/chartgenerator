@@ -1,8 +1,11 @@
-from setuptools import setup, find_packages
+from setuptools import setup
+
+with open('README.md', 'r') as fh:
+    long_description = fh.read()
 
 setup(
     name='chartgenerator',
-    version='0.1a',
+    version='0.1a1',
     author='Hunter M. Allen',
     author_email='allenhm@gmail.com',
     license='MIT',
@@ -13,6 +16,14 @@ setup(
                       'pandas>=0.21.0',
                       'peakutils>=1.1.1',
                       'plotly>=2.6.0'],
-    description='Candlestick chart generator and support/resistance calculator for market data using Plot.ly and peakutils',
+    description='Candlestick chart generator and support/resistance calculator for market data using Plot.ly and peakutils.',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
+    url='https://github.com/hmallen/chartgenerator',
     keywords=['chart', 'generator'],
+    classifiers=(
+        'Programming Language :: Python :: 3',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
+    ),
 )
