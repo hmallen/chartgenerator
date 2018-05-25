@@ -5,15 +5,15 @@ with open('README.md', 'r') as fh:
 
 setup(
     name='chartgenerator',
-    version='0.1a',
+    version='0.1a1',
     author='Hunter M. Allen',
     author_email='allenhm@gmail.com',
     license='MIT',
     #packages=find_packages(),
     packages=['chartgenerator'],
     #scripts=['bin/heartbeatmonitor.py'],
-    install_requires=['numpy>=1.2.1',
-                      'pandas>=0.21.0',
+    install_requires=['numpy>=1.14.3',
+                      'pandas>=0.23.0',
                       'peakutils>=1.1.1',
                       'plotly>=2.6.0'],
     description='Candlestick chart generator and support/resistance calculator for market data using Plot.ly and peakutils.',
