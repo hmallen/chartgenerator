@@ -26,7 +26,7 @@ import boto3
 logger = logging.getLogger(__name__)
 #logger.setLevel(logging.DEBUG)
 
-config_path = 'config/config.ini'
+#config_path = 'config/config.ini'
 
 
 class ChartGenerator:
@@ -43,8 +43,8 @@ class ChartGenerator:
 
     html_out = ''
 
-    def __init__(self, trim_length_hourly, trim_length_daily, pretrim=0,
-                 output_html=False, render_html=False, output_png=False,
+    def __init__(self, trim_length_hourly, trim_length_daily, config_path=config_path,
+                 pretrim=0, output_html=False, render_html=False, output_png=False,
                  json_file=None,
                  candle_dir=None,
                  image_dir=None,
