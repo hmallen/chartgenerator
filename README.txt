@@ -1,1 +1,1 @@
-# Heartbeat Monitor
+# Chart Generator
