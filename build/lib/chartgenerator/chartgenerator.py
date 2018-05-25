@@ -43,7 +43,7 @@ class ChartGenerator:
 
     html_out = ''
 
-    def __init__(self, trim_length_hourly, trim_length_daily, config_path=config_path,
+    def __init__(self, trim_length_hourly, trim_length_daily, config_path,
                  pretrim=0, output_html=False, render_html=False, output_png=False,
                  json_file=None,
                  candle_dir=None,
