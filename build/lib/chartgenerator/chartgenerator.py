@@ -1,8 +1,3 @@
-import plotly.offline as py
-import plotly.plotly as pp
-import plotly.graph_objs as go
-import plotly.tools as pt
-
 import configparser
 import datetime
 import logging
@@ -13,11 +8,16 @@ import shutil
 import sys
 import time
 
+import boto3
+
 import numpy as np
 import pandas as pd
 import peakutils
 
-import boto3
+import plotly.offline as py
+import plotly.plotly as pp
+import plotly.graph_objs as go
+import plotly.tools as pt
 
 #from flask import Flask, Markup, redirect, render_template, request, url_for
 #app = Flask(__name__)
@@ -36,15 +36,13 @@ class ChartGenerator:
 
     html_static_path = 'chart_current.html'
 
-    s3_bucket_name = 'teslabot'
-    s3_chart_name = 'chart.html'
-
     candle_types = ['open_time', 'close_time', 'open', 'high', 'low', 'close', 'volume']
 
     html_out = ''
 
     def __init__(self, trim_length_hourly, trim_length_daily, config_path,
                  pretrim=0, output_html=False, render_html=False, output_png=False,
+                 s3_bucket_name=None, s3_chart_name=None,
                  json_file=None,
                  candle_dir=None,
                  image_dir=None,
@@ -67,6 +65,22 @@ class ChartGenerator:
         if self.render_html == True or self.output_png == True:
             self.s3 = boto3.resource('s3')
 
+            if self.render_html == True and s3_bucket_name != None:
+                self.s3_bucket_name = s3_bucket_name
+
+            elif self.render_html == True:
+                logger.error('HTML features activated. Must provide chart name for AWS S3 bucket. Exiting.')
+
+                sys.exit(1)
+
+            if self.output_png == True and s3_chart_name != None:
+                self.s3_chart_name = s3_chart_name
+
+            elif self.output_png == True:
+                logger.error('PNG features activated. Must provide AWS S3 bucket name. Exiting.')
+
+                sys.exit(1)
+
         config = configparser.ConfigParser()
         config.read(config_path)
 
@@ -75,24 +89,11 @@ class ChartGenerator:
 
         pt.set_credentials_file(username=plotly_user, api_key=plotly_key)
 
-        """
-        if json_files != None:
-            if not isinstance(json_files, list):
-                logger.error('JSON files must be provided as a list. Exiting.')
-
-                sys.exit(1)
-
-            else:
-                self.json_files = json_files
-        """
-
         if candle_dir != None:
             if candle_dir[-1] != '/':
                 candle_dir += '/'
 
             ChartGenerator.candle_directory = candle_dir
-
-            #ChartGenerator.candle_complete_directory = ChartGenerator.candle_directory + 'complete/'
 
         if json_file == None and not os.path.exists(ChartGenerator.candle_directory):
             logger.error('Candle directory "' + ChartGenerator.candle_directory + '" not found. Exiting.')
@@ -102,11 +103,6 @@ class ChartGenerator:
         else:
             if json_file != None:
                 self.json_file = json_file
-
-            #if not os.path.exists(ChartGenerator.candle_complete_directory):
-                #logger.info('Creating directory to store json files after successful analysis.')
-
-                #os.mkdir(ChartGenerator.candle_complete_directory)
 
             if self.output_html == True and not os.path.exists(ChartGenerator.html_directory):
                 logger.info('Creating directory to output chart HTML files.')
@@ -130,11 +126,11 @@ class ChartGenerator:
 
                 os.mkdir(self.candle_archive_directory)
 
-        self.html_div_output = ''
+        #self.html_div_output = ''
 
-        self.include_js = True
+        #self.include_js = True
 
-        self.chart_div_collection = []
+        #self.chart_div_collection = []
 
         #self.create_charts()
 
@@ -264,6 +260,8 @@ class ChartGenerator:
             candles_json_selected.append(self.json_file)
 
         candles_json_selected.sort()
+
+        chart_div_collection = []
 
         for candles_json in candles_json_selected:
             print(candles_json)
@@ -697,7 +695,8 @@ class ChartGenerator:
 
             chart_div = py.plot(fig, include_plotlyjs=self.include_js, output_type='div', show_link=False)
 
-            self.chart_div_collection.append(chart_div)
+            #self.chart_div_collection.append(chart_div)
+            chart_div_collection.append(chart_div)
 
             if self.render_html == True:
                 logger.debug('Writing chart HTML to file.')
@@ -731,10 +730,13 @@ class ChartGenerator:
 
             chart_return.append(chart_current)
 
-        self.html_div_output = ''
+        #self.html_div_output = ''
+        html_div_output = ''
 
-        for chart_div in self.chart_div_collection:
-            self.html_div_output += '<br>' + chart_div + '<br>'
+        #for chart_div in self.chart_div_collection:
+        for chart_div in chart_div_collection:
+            #self.html_div_output += '<br>' + chart_div + '<br>'
+            html_div_output += '<br>' + chart_div + '<br>'
 
         if self.output_html == True:# or self.render_html == True:
             logger.info('Dumping charts to HTML file.')
@@ -742,61 +744,25 @@ class ChartGenerator:
             chart_html_path = ChartGenerator.html_directory + 'charts_' + datetime.datetime.now().strftime('%m%d%Y-%H%M%S') + '.html'
 
             with open(chart_html_path, 'w') as file:
-                file.write(self.html_div_output)
-
-            """
-            if self.render_html == True:
-                logger.debug('Writing HTML to static path.')
-
-                with open(ChartGenerator.html_static_path, 'w') as file:
-                    file.write(self.html_div_output)
-
-                logger.info('Uploading chart to S3 bucket.')
-
-                self.s3.meta.client.upload_file(ChartGenerator.html_static_path,
-                                                ChartGenerator.s3_bucket_name,
-                                                ChartGenerator.s3_chart_name,
-                                                ExtraArgs={'ContentType': 'text/html'})
-            """
-
-        #if self.render_html == True:
-            #ChartGenerator.html_out = self.html_div_output
-
-        #chart_return['count'] = chart_count
+                #file.write(self.html_div_output)
+                file.write(html_div_output)
 
         pprint(chart_return)
 
         return chart_return
 
 
-"""
-@app.route('/chart', methods=['GET', 'POST'])
-def chart():
-    error = None
-
-    if request.method == 'GET':
-        return render_template('chart_template.html', div_placeholder=Markup(ChartGenerator.html_out))
-
-    elif request.method == 'POST':
-        return redirect(url_for('chart', error=error))
-"""
-
-
 if __name__ == '__main__':
-    chart_generator = ChartGenerator(100, 100, pretrim=1, output_html=False, render_html=True, output_png=True, candle_dir='json/test/')#, keep_json_files=True)#, candle_dir='json/candles/')
+    test_chart = 'chart.html'
+    test_bucket = 'teslabot'
+
+    chart_generator = ChartGenerator(100, 100, pretrim=1,
+                                     output_html=False,
+                                     render_html=True, s3_chart_name=test_chart,
+                                     output_png=True, s3_bucket_name=test_bucket,
+                                     candle_dir='json/test/')
 
     chart_results = chart_generator.create_charts()
 
-    #logger.debug('chart_results: ' + str(chart_results))
     print('CHART RESULTS:')
     pprint(chart_results)
-
-    """
-    if chart_generator.render_html == True:
-        logger.info('Flask enabled.')
-
-        app.run()#debug=True)
-
-    else:
-        logger.info('Flask disabled.')
-    """
