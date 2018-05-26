@@ -657,7 +657,8 @@ class ChartGenerator:
                 logger.debug('s3_image_url: ' + s3_image_url)
 
                 self.s3.meta.client.upload_file(image_path,
-                                                ChartGenerator.s3_bucket_name,
+                                                #ChartGenerator.s3_bucket_name,
+                                                self.s3_bucket_name,
                                                 s3_image_path,
                                                 #ExtraArgs={'ContentType': 'text/html'})
                                                 ExtraArgs={'ContentType': 'image/png'})
@@ -713,7 +714,8 @@ class ChartGenerator:
                 logger.debug('s3_html_url: ' + s3_html_url)
 
                 self.s3.meta.client.upload_file(html_path,
-                                                ChartGenerator.s3_bucket_name,
+                                                #ChartGenerator.s3_bucket_name,
+                                                self.s3_bucket_name,
                                                 s3_html_path,
                                                 ExtraArgs={'ContentType': 'text/html'})
 
