@@ -694,7 +694,8 @@ class ChartGenerator:
             #if display_plots == True:
                 #py.iplot(fig, show_link=False)
 
-            chart_div = py.plot(fig, include_plotlyjs=self.include_js, output_type='div', show_link=False)
+            #chart_div = py.plot(fig, include_plotlyjs=self.include_js, output_type='div', show_link=False)
+            chart_div = py.plot(fig, include_plotlyjs=True, output_type='div', show_link=False)
 
             #self.chart_div_collection.append(chart_div)
             chart_div_collection.append(chart_div)
