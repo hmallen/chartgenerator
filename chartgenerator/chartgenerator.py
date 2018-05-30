@@ -597,7 +597,13 @@ class ChartGenerator:
             fig = dict(data=ohlc_traces)
 
             fig['layout'] = dict()
-            fig['layout']['title'] = chart_title
+
+            if chart_current['interval'] != 'marketcap':
+                fig['layout']['title'] = chart_title
+
+            else:
+                fig['layout']['title'] = 'Market Capitalization - ' + chart_title
+
             fig['layout']['plot_bgcolor'] = 'rgba(0,0,0,100)'
             fig['layout']['xaxis'] = dict(title='Date/Time',
                                           rangeselector=dict(visible=True),
