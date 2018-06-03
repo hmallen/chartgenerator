@@ -113,10 +113,11 @@ class ChartGenerator:
             #if json_file != None:
                 #self.json_file = json_file
 
-        if self.output_html == True and not os.path.exists(ChartGenerator.html_directory):
-            logger.info('Creating directory to output chart HTML files.')
+        if self.output_html == True or self.render_html == True:
+            if not os.path.exists(ChartGenerator.html_directory):
+                logger.info('Creating directory to output chart HTML files.')
 
-            os.mkdir(ChartGenerator.html_directory)
+                os.mkdir(ChartGenerator.html_directory)
 
         if self.output_png == True and not os.path.exists(ChartGenerator.image_directory):
             logger.info('Creating directory to output chart PNG files.')
