@@ -264,7 +264,7 @@ class ChartGenerator:
         chart_div_collection = []
 
         for candles_json in candles_json_selected:
-            print(candles_json)
+            #print(candles_json)
 
             chart_current = {}
 
@@ -756,7 +756,7 @@ class ChartGenerator:
                 #file.write(self.html_div_output)
                 file.write(html_div_output)
 
-        pprint(chart_return)
+        #pprint(chart_return)
 
         return chart_return
 
