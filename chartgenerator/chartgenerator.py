@@ -1,5 +1,5 @@
 import datetime
-import json
+#import json
 import logging
 import os
 from pprint import pprint
@@ -43,13 +43,12 @@ class ChartGenerator:
 
     def __init__(self, trim_length_hourly, trim_length_daily, config_path,
                  pretrim=0, output_html=False, render_html=False, output_png=False,
-                 s3_bucket_name=None, s3_chart_name=None,
+                 s3_bucket_name=None, s3_chart_name=None, s3_webhosting_url=None,
                  json_file=None,
                  candle_dir=None,
                  image_dir=None,
                  keep_json_files=False,
-                 random_pair_samples=None,
-                 dump_candles=False):
+                 random_pair_samples=None):
 
         self.candles = {}
 
@@ -66,6 +65,12 @@ class ChartGenerator:
 
         if self.render_html == True or self.output_png == True:
             self.s3 = boto3.resource('s3')
+
+            if s3_webhosting_url == None:
+                logger.error('No S3 webhosting base url provided. Exiting.')
+
+            else:
+                self.s3_webhosting_url = s3_webhosting_url
 
             if self.render_html == True and s3_bucket_name != None:
                 self.s3_bucket_name = s3_bucket_name
@@ -89,7 +94,7 @@ class ChartGenerator:
         plotly_user = config['plotly']['user']
         plotly_key = config['plotly']['key']
 
-        pt.set_credentials_file(username=plotly_user, api_key=plotly_key)
+        #pt.set_credentials_file(username=plotly_user, api_key=plotly_key)
 
         if candle_dir != None:
             if candle_dir[-1] != '/':
@@ -99,44 +104,36 @@ class ChartGenerator:
 
         self.json_file = json_file
 
-        if self.json_file == None and not os.path.exists(ChartGenerator.candle_directory):
-            logger.error('Candle directory "' + ChartGenerator.candle_directory + '" not found. Exiting.')
+        #if self.json_file == None and not os.path.exists(ChartGenerator.candle_directory):
+            #logger.error('Candle directory "' + ChartGenerator.candle_directory + '" not found. Exiting.')
 
-            sys.exit(1)
+            #sys.exit(1)
 
-        else:
+        #else:
             #if json_file != None:
                 #self.json_file = json_file
 
-            if self.output_html == True and not os.path.exists(ChartGenerator.html_directory):
-                logger.info('Creating directory to output chart HTML files.')
+        if self.output_html == True and not os.path.exists(ChartGenerator.html_directory):
+            logger.info('Creating directory to output chart HTML files.')
 
-                os.mkdir(ChartGenerator.html_directory)
+            os.mkdir(ChartGenerator.html_directory)
 
-            if self.output_png == True and not os.path.exists(ChartGenerator.image_directory):
-                logger.info('Creating directory to output chart PNG files.')
+        if self.output_png == True and not os.path.exists(ChartGenerator.image_directory):
+            logger.info('Creating directory to output chart PNG files.')
 
-                os.mkdir(ChartGenerator.image_directory)
+            os.mkdir(ChartGenerator.image_directory)
 
-            self.keep_json_files = keep_json_files
+        self.keep_json_files = keep_json_files
 
-            if self.keep_json_files == False:
-                candle_archive_dir_base = candle_dir + 'archive/'
+        if self.keep_json_files == False:
+            candle_archive_dir_base = candle_dir + 'archive/'
 
-                if not os.path.exists(candle_archive_dir_base):
-                    os.mkdir(candle_archive_dir_base)
+            if not os.path.exists(candle_archive_dir_base):
+                os.mkdir(candle_archive_dir_base)
 
-                self.candle_archive_directory = candle_archive_dir_base + datetime.datetime.now().strftime('%m%d%Y-%H%M%S') + '/'
+            self.candle_archive_directory = candle_archive_dir_base + datetime.datetime.now().strftime('%m%d%Y-%H%M%S') + '/'
 
-                os.mkdir(self.candle_archive_directory)
-
-        self.dump_candles = dump_candles
-
-        self.candles_dump_directory = candle_dir + 'json_output/'
-
-        if self.dump_candles == True:
-            if not os.path.exists(self.candles_dump_directory):
-                os.mkdir(self.candles_dump_directory)
+            os.mkdir(self.candle_archive_directory)
 
         #self.html_div_output = ''
 
@@ -172,7 +169,8 @@ class ChartGenerator:
             img_path = ChartGenerator.image_directory + candle_path.split('/')[-1].rstrip('.json') + '.png'
             #logger.debug('img_path: ' + img_path)
 
-            html_path = img_path.rstrip('.png') + '.html'
+            #html_path = img_path.rstrip('.png') + '.html'
+            html_path = ChartGenerator.html_directory + candle_path.split('/')[-1].rstrip('.json') + '.html'
             #logger.debug('html_path: ' + html_path)
 
             return (candle_path, exchange, market, interval, img_path, html_path)
@@ -219,21 +217,13 @@ class ChartGenerator:
             return market_name
 
 
-        def dump_candles(candle_data, filename):
-            try:
-                with open(filename, 'w', encoding='utf-8') as file:
-                    #json.dump(candle_data, file, indent=4, sort_keys=True, ensure_ascii=False, cls=NumpyEncoder)
-                    file.write(json.dumps(candle_data, indent=4, sort_keys=True, ensure_ascii=False, default=str))
-
-            except Exception as e:
-                logger.exception('Exception while dumping candles to json file.')
-                logger.exception(e)
-
         chart_return = []
 
         candles_json_selected = []
 
         if self.json_file == None:
+            logger.warning('No json file path provided. Using candle directory, ' + ChartGenerator.candle_directory + '.')
+
             candles_dir_contents = os.listdir(ChartGenerator.candle_directory)
 
             candles_json_files = []
@@ -382,25 +372,9 @@ class ChartGenerator:
                     else:
                         self.candles[data_type] = candles_pandas[data_type].tolist()
 
-            #if self.dump_candles == True:
-                #candles_path = chart_current['json'].rstrip('.json') + '_chartgenerator_before.json'
-
-                #candles_json_file = dump_candles(self.candles, filename=candles_path)
-
             for data_type in ChartGenerator.candle_types:
-                self.candles[data_type] = self.candles[data_type][::-1][self.pretrim:]
-                #self.candles[data_type] = self.candles[data_type][self.pretrim:][::-1]
-
-            #if self.dump_candles == True:
-                #candles_path = chart_current['json'].rstrip('.json') + '_chartgenerator_after.json'
-
-                #candles_json_file = dump_candles(self.candles, filename=candles_path)
-
-            if self.dump_candles == True:
-                candles_json_output_path = self.candles_dump_directory + chart_current['json'].split('/')[-1].rstrip('.json') + '_chartgenerator.json'
-                logger.debug(candles_json_output_path)
-
-                candles_json_file = dump_candles(self.candles, filename=candles_json_output_path)
+                #self.candles[data_type] = self.candles[data_type][self.pretrim:]
+                self.candles[data_type] = self.candles[data_type][self.pretrim:][::-1]
 
             ## Get and format all required data for analysis ##
 
@@ -410,10 +384,10 @@ class ChartGenerator:
             else:
                 trim_length = int(self.trim_length_daily)# * -1)
 
-            time_x = pd.to_datetime(self.candles['open_time'])[:trim_length]
+            #time_x = pd.to_datetime(self.candles['open_time'])[trim_length:]
             #time_x = pd.to_datetime(self.candles['close_time'])[:trim_length]
             #time_x = pd.to_datetime(self.candles['close_time'])[trim_length:]
-            #time_x = pd.to_datetime(self.candles['open_time'])[trim_length:]
+            time_x = pd.to_datetime(self.candles['open_time'])[:trim_length]
 
             open_y = np.array(self.candles['open'])[:trim_length]
             #open_y = np.array(self.candles['open'])[trim_length:]
@@ -429,7 +403,7 @@ class ChartGenerator:
             logger.debug('open_min: ' + str(open_min))
 
             high_y = np.array(self.candles['high'])[:trim_length]
-            ##high_y = np.array(self.candles['high'])[trim_length:]
+            #high_y = np.array(self.candles['high'])[trim_length:]
             high_x = np.array([j for j in range(len(high_y))])
 
             high_first = high_y[0]
@@ -473,20 +447,6 @@ class ChartGenerator:
             volume_y = np.array(self.candles['volume'])[:trim_length]
             #volume_y = np.array(self.candles['volume'])[trim_length:]
             volume_x = np.array([j for j in range(len(volume_y))])
-
-            dump_dict = {}
-            dump_dict['timestamp'] = time_x
-            dump_dict['open'] = open_y
-            dump_dict['high'] = high_y
-            dump_dict['low'] = low_y
-            dump_dict['close'] = close_y
-            dump_dict['volume'] = volume_y
-
-            if self.dump_candles == True:
-                candles_json_output_path = self.candles_dump_directory + chart_current['json'].split('/')[-1].rstrip('.json') + '_chartgenerator_modified.json'
-                logger.debug(candles_json_output_path)
-
-                candles_json_file = dump_candles(dump_dict, filename=candles_json_output_path)
 
             ## Calculate Peaks ##
 
@@ -776,7 +736,7 @@ class ChartGenerator:
                 s3_html_path = 'charts/' + html_path.split('/')[-1]
                 logger.debug('s3_html_path: ' + s3_html_path)
 
-                s3_html_url = 'http://teslabot.s3-website-us-east-1.amazonaws.com/charts/' + html_path.split('/')[-1]
+                s3_html_url = self.s3_webhosting_url + html_path.split('/')[-1]
                 logger.debug('s3_html_url: ' + s3_html_url)
 
                 self.s3.meta.client.upload_file(html_path,
@@ -824,15 +784,15 @@ if __name__ == '__main__':
     config_path = 'config/config.ini'
     test_chart = 'chart.html'
     test_bucket = 'teslabot'
+    test_webhosting_url = 'http://teslabot.s3-website-us-east-1.amazonaws.com/charts/'
 
     chart_generator = ChartGenerator(100, 100, config_path=config_path,
                                      pretrim=1,
-                                     output_html=False,
-                                     render_html=True, output_png=True,
+                                     output_html=True, render_html=True, output_png=False,
+                                     s3_webhosting_url=test_webhosting_url,
                                      s3_chart_name=test_chart, s3_bucket_name=test_bucket,
                                      candle_dir='json/test/',
-                                     keep_json_files=True,
-                                     dump_candles=True)
+                                     keep_json_files=True)
 
     chart_results = chart_generator.create_charts()
 
