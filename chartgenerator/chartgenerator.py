@@ -23,7 +23,7 @@ import plotly.tools as pt
 
 from numpyencoder import NumpyEncoder
 
-logging.basicConfig()
+#logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 

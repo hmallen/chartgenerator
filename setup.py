@@ -5,7 +5,7 @@ with open('README.md', 'r') as fh:
 
 setup(
     name='chartgenerator',
-    version='0.1a9',
+    version='0.1a10',
     author='Hunter M. Allen',
     author_email='allenhm@gmail.com',
     license='MIT',
