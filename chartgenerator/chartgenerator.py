@@ -1,12 +1,14 @@
-import configparser
 import datetime
+import json
 import logging
 import os
 from pprint import pprint
 import random
-import shutil
 import sys
 import time
+
+import configparser
+import shutil
 
 import boto3
 
@@ -19,12 +21,11 @@ import plotly.plotly as pp
 import plotly.graph_objs as go
 import plotly.tools as pt
 
-#from flask import Flask, Markup, redirect, render_template, request, url_for
-#app = Flask(__name__)
+from numpyencoder import NumpyEncoder
 
-#logging.basicConfig()
+logging.basicConfig()
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG)
 
 #config_path = 'config/config.ini'
 
@@ -47,7 +48,8 @@ class ChartGenerator:
                  candle_dir=None,
                  image_dir=None,
                  keep_json_files=False,
-                 random_pair_samples=None):
+                 random_pair_samples=None,
+                 dump_candles=False):
 
         self.candles = {}
 
@@ -95,14 +97,16 @@ class ChartGenerator:
 
             ChartGenerator.candle_directory = candle_dir
 
-        if json_file == None and not os.path.exists(ChartGenerator.candle_directory):
+        self.json_file = json_file
+
+        if self.json_file == None and not os.path.exists(ChartGenerator.candle_directory):
             logger.error('Candle directory "' + ChartGenerator.candle_directory + '" not found. Exiting.')
 
             sys.exit(1)
 
         else:
-            if json_file != None:
-                self.json_file = json_file
+            #if json_file != None:
+                #self.json_file = json_file
 
             if self.output_html == True and not os.path.exists(ChartGenerator.html_directory):
                 logger.info('Creating directory to output chart HTML files.')
@@ -125,6 +129,14 @@ class ChartGenerator:
                 self.candle_archive_directory = candle_archive_dir_base + datetime.datetime.now().strftime('%m%d%Y-%H%M%S') + '/'
 
                 os.mkdir(self.candle_archive_directory)
+
+        self.dump_candles = dump_candles
+
+        self.candles_dump_directory = candle_dir + 'json_output/'
+
+        if self.dump_candles == True:
+            if not os.path.exists(self.candles_dump_directory):
+                os.mkdir(self.candles_dump_directory)
 
         #self.html_div_output = ''
 
@@ -206,6 +218,16 @@ class ChartGenerator:
 
             return market_name
 
+
+        def dump_candles(candle_data, filename):
+            try:
+                with open(filename, 'w', encoding='utf-8') as file:
+                    #json.dump(candle_data, file, indent=4, sort_keys=True, ensure_ascii=False, cls=NumpyEncoder)
+                    file.write(json.dumps(candle_data, indent=4, sort_keys=True, ensure_ascii=False, default=str))
+
+            except Exception as e:
+                logger.exception('Exception while dumping candles to json file.')
+                logger.exception(e)
 
         chart_return = []
 
@@ -313,7 +335,7 @@ class ChartGenerator:
 
             for data_type in ChartGenerator.candle_types:
                 logger.debug('data_type: ' + data_type)
-                logger.debug('exchange_name.lower(): ' + exchange_name.lower())
+                #logger.debug('exchange_name.lower(): ' + exchange_name.lower())
 
                 if data_type == 'open_time':
                     if exchange_name.lower() == 'bittrex':
@@ -360,9 +382,25 @@ class ChartGenerator:
                     else:
                         self.candles[data_type] = candles_pandas[data_type].tolist()
 
+            #if self.dump_candles == True:
+                #candles_path = chart_current['json'].rstrip('.json') + '_chartgenerator_before.json'
+
+                #candles_json_file = dump_candles(self.candles, filename=candles_path)
+
             for data_type in ChartGenerator.candle_types:
-                #self.candles[data_type] = self.candles[data_type][::-1][self.pretrim:]
-                self.candles[data_type] = self.candles[data_type][self.pretrim:][::-1]
+                self.candles[data_type] = self.candles[data_type][::-1][self.pretrim:]
+                #self.candles[data_type] = self.candles[data_type][self.pretrim:][::-1]
+
+            #if self.dump_candles == True:
+                #candles_path = chart_current['json'].rstrip('.json') + '_chartgenerator_after.json'
+
+                #candles_json_file = dump_candles(self.candles, filename=candles_path)
+
+            if self.dump_candles == True:
+                candles_json_output_path = self.candles_dump_directory + chart_current['json'].split('/')[-1].rstrip('.json') + '_chartgenerator.json'
+                logger.debug(candles_json_output_path)
+
+                candles_json_file = dump_candles(self.candles, filename=candles_json_output_path)
 
             ## Get and format all required data for analysis ##
 
@@ -372,10 +410,13 @@ class ChartGenerator:
             else:
                 trim_length = int(self.trim_length_daily)# * -1)
 
-            #time_x = pd.to_datetime(self.candles['open_time'])[:trim_length]
-            time_x = pd.to_datetime(self.candles['close_time'])[:trim_length]
+            time_x = pd.to_datetime(self.candles['open_time'])[:trim_length]
+            #time_x = pd.to_datetime(self.candles['close_time'])[:trim_length]
+            #time_x = pd.to_datetime(self.candles['close_time'])[trim_length:]
+            #time_x = pd.to_datetime(self.candles['open_time'])[trim_length:]
 
             open_y = np.array(self.candles['open'])[:trim_length]
+            #open_y = np.array(self.candles['open'])[trim_length:]
             open_x = np.array([j for j in range(len(open_y))])
 
             open_last = open_y[-1]
@@ -388,6 +429,7 @@ class ChartGenerator:
             logger.debug('open_min: ' + str(open_min))
 
             high_y = np.array(self.candles['high'])[:trim_length]
+            ##high_y = np.array(self.candles['high'])[trim_length:]
             high_x = np.array([j for j in range(len(high_y))])
 
             high_first = high_y[0]
@@ -403,6 +445,7 @@ class ChartGenerator:
             logger.debug('high_min: ' + str(high_min))
 
             low_y = np.array(self.candles['low'])[:trim_length]
+            #low_y = np.array(self.candles['low'])[trim_length:]
             low_x = np.array([j for j in range(len(low_y))])
 
             low_last = low_y[-1]
@@ -415,6 +458,7 @@ class ChartGenerator:
             logger.debug('low_min: ' + str(low_min))
 
             close_y = np.array(self.candles['close'])[:trim_length]
+            #close_y = np.array(self.candles['close'])[trim_length:]
             close_x = np.array([j for j in range(len(close_y))])
 
             close_last = close_y[-1]
@@ -427,7 +471,22 @@ class ChartGenerator:
             logger.debug('close_min: ' + str(close_min))
 
             volume_y = np.array(self.candles['volume'])[:trim_length]
+            #volume_y = np.array(self.candles['volume'])[trim_length:]
             volume_x = np.array([j for j in range(len(volume_y))])
+
+            dump_dict = {}
+            dump_dict['timestamp'] = time_x
+            dump_dict['open'] = open_y
+            dump_dict['high'] = high_y
+            dump_dict['low'] = low_y
+            dump_dict['close'] = close_y
+            dump_dict['volume'] = volume_y
+
+            if self.dump_candles == True:
+                candles_json_output_path = self.candles_dump_directory + chart_current['json'].split('/')[-1].rstrip('.json') + '_chartgenerator_modified.json'
+                logger.debug(candles_json_output_path)
+
+                candles_json_file = dump_candles(dump_dict, filename=candles_json_output_path)
 
             ## Calculate Peaks ##
 
@@ -762,14 +821,18 @@ class ChartGenerator:
 
 
 if __name__ == '__main__':
+    config_path = 'config/config.ini'
     test_chart = 'chart.html'
     test_bucket = 'teslabot'
 
-    chart_generator = ChartGenerator(100, 100, pretrim=1,
+    chart_generator = ChartGenerator(100, 100, config_path=config_path,
+                                     pretrim=1,
                                      output_html=False,
-                                     render_html=True, s3_chart_name=test_chart,
-                                     output_png=True, s3_bucket_name=test_bucket,
-                                     candle_dir='json/test/')
+                                     render_html=True, output_png=True,
+                                     s3_chart_name=test_chart, s3_bucket_name=test_bucket,
+                                     candle_dir='json/test/',
+                                     keep_json_files=True,
+                                     dump_candles=True)
 
     chart_results = chart_generator.create_charts()
 
