@@ -1,0 +1,1 @@
+from .chartgenerator import ChartGenerator
