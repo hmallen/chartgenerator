@@ -1,0 +1,9 @@
+README.md
+setup.py
+chartgenerator/__init__.py
+chartgenerator/chartgenerator.py
+chartgenerator.egg-info/PKG-INFO
+chartgenerator.egg-info/SOURCES.txt
+chartgenerator.egg-info/dependency_links.txt
+chartgenerator.egg-info/requires.txt
+chartgenerator.egg-info/top_level.txt
