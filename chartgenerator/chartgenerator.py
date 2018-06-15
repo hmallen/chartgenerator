@@ -368,7 +368,7 @@ class ChartGenerator:
                             self.candles['close_time'].append(close_times[x] + pd.Timedelta(milliseconds=1))
 
                     elif exchange_name.lower() == 'poloniex':
-                        self.candles['open_time'] = candles_pandas['open_time'].tolist()
+                        self.candles['open_time'] = candles_pandas['close_time'].tolist()   # NEED TO FIX THIS
 
                         self.candles['close_time'] = []
 
