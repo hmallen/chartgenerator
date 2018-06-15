@@ -345,7 +345,7 @@ class ChartGenerator:
                         for x in range(0, len(close_times)):
                             self.candles['open_time'].append(close_times[x] - pd.Timedelta(hours=interval_hours))
 
-                    else:
+                    elif exchange_name.lower() == 'binance':
                         self.candles['open_time'] = candles_pandas['open_time'].tolist()
 
                 elif data_type == 'close_time':
