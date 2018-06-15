@@ -38,7 +38,7 @@ class ChartGenerator:
     html_static_path = 'chart_current.html'
 
     #candle_types = ['open_time', 'close_time', 'open', 'high', 'low', 'close', 'volume']
-    candle_types = ['date', 'open_time', 'close_time', 'open', 'high', 'low', 'close', 'volume']
+    candle_types = ['open_time', 'close_time', 'open', 'high', 'low', 'close', 'volume']
 
     html_out = ''
 
