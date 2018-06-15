@@ -37,7 +37,8 @@ class ChartGenerator:
 
     html_static_path = 'chart_current.html'
 
-    candle_types = ['open_time', 'close_time', 'open', 'high', 'low', 'close', 'volume']
+    #candle_types = ['open_time', 'close_time', 'open', 'high', 'low', 'close', 'volume']
+    candle_types = ['date', 'open_time', 'close_time', 'open', 'high', 'low', 'close', 'volume']
 
     html_out = ''
 
@@ -328,7 +329,17 @@ class ChartGenerator:
                 logger.debug('data_type: ' + data_type)
                 #logger.debug('exchange_name.lower(): ' + exchange_name.lower())
 
-                if data_type == 'open_time':
+                if data_type == 'date':
+                    open_times = candles_pandas['date'].tolist()
+
+                    self.candles['open_time'] = open_times
+
+                    self.candles['close_time'] = []
+
+                    for x in range(0, len(open_times)):
+                        self.candles['close_time'].append(open_times[x] + pd.Timedelta(hours=interval_hours))
+
+                elif data_type == 'open_time':
                     if exchange_name.lower() == 'bittrex':
                         # Bittrex uses millisecond timestamps
                         # 1 hour = 3,600,000 ms
