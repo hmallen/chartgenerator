@@ -329,17 +329,7 @@ class ChartGenerator:
                 logger.debug('data_type: ' + data_type)
                 #logger.debug('exchange_name.lower(): ' + exchange_name.lower())
 
-                if data_type == 'date':
-                    open_times = candles_pandas['date'].tolist()
-
-                    self.candles['open_time'] = open_times
-
-                    self.candles['close_time'] = []
-
-                    for x in range(0, len(open_times)):
-                        self.candles['close_time'].append(open_times[x] + pd.Timedelta(hours=interval_hours))
-
-                elif data_type == 'open_time':
+                if data_type == 'open_time':
                     if exchange_name.lower() == 'bittrex':
                         # Bittrex uses millisecond timestamps
                         # 1 hour = 3,600,000 ms
@@ -369,7 +359,7 @@ class ChartGenerator:
                         for x in range(0, len(close_times)):
                             self.candles['open_time'].append(close_times[x] - pd.Timedelta(hours=interval_hours))
 
-                    else:
+                    elif exchange_name.lower() == 'binance':
                         close_times = candles_pandas['close_time'].tolist()
 
                         self.candles['close_time'] = []
@@ -377,9 +367,17 @@ class ChartGenerator:
                         for x in range(0, len(close_times)):
                             self.candles['close_time'].append(close_times[x] + pd.Timedelta(milliseconds=1))
 
+                    elif exchange_name.lower() == 'poloniex':
+                        self.candles['open_time'] = candles_pandas['open_time'].tolist()
+
+                        self.candles['close_time'] = []
+
+                        for x in range(0, len(self.candles['close_time'])):
+                            self.candles['close_time'].append(self.candles['open_time'] + pd.Timedelta(hours=interval_hours))
+
                 else:
                     if exchange_name.lower() == 'bittrex':
-                        self.candles[data_type] = candles_pandas[data_type].tolist()
+                        self.candles[data_type] = candles_pandas[data_type].tolist()    # What's the point of this logic?
 
                     else:
                         self.candles[data_type] = candles_pandas[data_type].tolist()
