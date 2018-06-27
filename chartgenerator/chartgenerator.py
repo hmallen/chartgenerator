@@ -42,7 +42,7 @@ class ChartGenerator:
 
     html_out = ''
 
-    def __init__(self, trim_length_hourly, trim_length_daily, config_path,
+    def __init__(self, trim_length_hourly, trim_length_daily, trim_length_bear, config_path,
                  pretrim=0, output_html=False, render_html=False, output_png=False,
                  s3_bucket_name=None, s3_chart_name=None, s3_webhosting_url=None,
                  json_file=None,
@@ -55,6 +55,7 @@ class ChartGenerator:
 
         self.trim_length_hourly = trim_length_hourly
         self.trim_length_daily = trim_length_daily
+        self.trim_length_bear = trim_length_bear
 
         self.pretrim = pretrim
 
@@ -148,32 +149,37 @@ class ChartGenerator:
 
     def create_charts(self):
         def parse_file_path(candle_file):
-            #logger.debug('candle_file: ' + candle_file)
+            logger.debug('candle_file: ' + candle_file)
 
             if self.json_file == None:
                 candle_path = ChartGenerator.candle_directory + candle_file
 
             else:
                 candle_path = candle_file
-            #logger.debug('candle_path: ' + candle_path)
+            logger.debug('candle_path: ' + candle_path)
 
             market_info = candle_file.split('_')[1]
 
-            exchange = market_info.split('-')[0]
-            #logger.debug('exchange: ' + exchange)
+            exchange = market_info.split('-')[0].capitalize()
+            logger.debug('exchange: ' + exchange)
 
             market = market_info.split('-')[1].upper()
-            #logger.debug('market: ' + market)
+            logger.debug('market: ' + market)
 
-            interval = candle_file.split('_')[2].split('.')[0].capitalize()
-            #logger.debug('interval: ' + interval)
+            interval = candle_file.split('_')[2].split('.')[0]#.capitalize()
+            logger.debug('interval: ' + interval)
 
-            img_path = ChartGenerator.image_directory + candle_path.split('/')[-1].rstrip('.json') + '.png'
-            #logger.debug('img_path: ' + img_path)
+            if interval != '30min':
+                interval = interval.capitalize()
+
+            #img_path = ChartGenerator.image_directory + candle_path.split('/')[-1].rstrip('.json') + '.png'
+            img_path = ChartGenerator.image_directory + 'chart_' + exchange + '-' + market + '_' + interval + '.png'
+            logger.debug('img_path: ' + img_path)
 
             #html_path = img_path.rstrip('.png') + '.html'
-            html_path = ChartGenerator.html_directory + candle_path.split('/')[-1].rstrip('.json') + '.html'
-            #logger.debug('html_path: ' + html_path)
+            #html_path = ChartGenerator.html_directory + candle_path.split('/')[-1].rstrip('.json') + '.html'
+            html_path = ChartGenerator.html_directory + 'chart_' + exchange + '-' + market + '_' + interval + '.png'
+            logger.debug('html_path: ' + html_path)
 
             return (candle_path, exchange, market, interval, img_path, html_path)
 
@@ -320,6 +326,9 @@ class ChartGenerator:
             if market_interval.lower() == 'hourly':
                 interval_hours = 1
 
+            elif market_interval.lower() == '30min':
+                interval_hours = 0.5
+
             else:
                 interval_hours = 24
 
@@ -330,7 +339,8 @@ class ChartGenerator:
                 #logger.debug('exchange_name.lower(): ' + exchange_name.lower())
 
                 if data_type == 'open_time':
-                    if exchange_name.lower() == 'bittrex':
+                    #if exchange_name.lower() == 'bittrex' or exchange_name.lower() == 'poloniex':
+                    if exchange_name.lower() != 'binance':
                         # Bittrex uses millisecond timestamps
                         # 1 hour = 3,600,000 ms
                         # 1 day = 86,400,000 ms
@@ -345,21 +355,24 @@ class ChartGenerator:
                         for x in range(0, len(close_times)):
                             self.candles['open_time'].append(close_times[x] - pd.Timedelta(hours=interval_hours))
 
-                    elif exchange_name.lower() == 'binance':
+                    #elif exchange_name.lower() == 'binance':
+                    else:
                         self.candles['open_time'] = candles_pandas['open_time'].tolist()
 
                 elif data_type == 'close_time':
-                    if exchange_name.lower() == 'bittrex':
+                    #if exchange_name.lower() == 'bittrex':
+                    if exchange_name.lower() != 'binance':
                         close_times = candles_pandas['close_time'].tolist()
 
                         self.candles['close_time'] = close_times
 
-                        self.candles['open_time'] = []
+                        #self.candles['open_time'] = []
 
-                        for x in range(0, len(close_times)):
-                            self.candles['open_time'].append(close_times[x] - pd.Timedelta(hours=interval_hours))
+                        #for x in range(0, len(close_times)):
+                            #self.candles['open_time'].append(close_times[x] - pd.Timedelta(hours=interval_hours))
 
-                    elif exchange_name.lower() == 'binance':
+                    #elif exchange_name.lower() == 'binance':
+                    else:
                         close_times = candles_pandas['close_time'].tolist()
 
                         self.candles['close_time'] = []
@@ -367,21 +380,12 @@ class ChartGenerator:
                         for x in range(0, len(close_times)):
                             self.candles['close_time'].append(close_times[x] + pd.Timedelta(milliseconds=1))
 
-                    elif exchange_name.lower() == 'poloniex':
-                        #self.candles['open_time'] = candles_pandas['close_time'].tolist()   # NEED TO FIX THIS
-                        self.candles['open_time'] = candles_pandas['open_time'].tolist()
-
-                        self.candles['close_time'] = []
-
-                        for x in range(0, len(self.candles['close_time'])):
-                            self.candles['close_time'].append(self.candles['open_time'] + pd.Timedelta(hours=interval_hours))
-
                 else:
-                    if exchange_name.lower() == 'bittrex':
-                        self.candles[data_type] = candles_pandas[data_type].tolist()    # What's the point of this logic?
+                    #if exchange_name.lower() == 'bittrex':
+                    self.candles[data_type] = candles_pandas[data_type].tolist()    # What's the point of this logic?
 
-                    else:
-                        self.candles[data_type] = candles_pandas[data_type].tolist()
+                    #else:
+                        #self.candles[data_type] = candles_pandas[data_type].tolist()
 
             for data_type in ChartGenerator.candle_types:
                 #self.candles[data_type] = self.candles[data_type][self.pretrim:]
@@ -391,6 +395,9 @@ class ChartGenerator:
 
             if market_interval.lower() == 'hourly':
                 trim_length = int(self.trim_length_hourly)# * -1)
+
+            elif market_interval.lower() == '30min':
+                trim_length = int(self.trim_length_bear)
 
             else:
                 trim_length = int(self.trim_length_daily)# * -1)
@@ -705,7 +712,7 @@ class ChartGenerator:
 
             range_buttons.append(dict(count=1, label='reset', step='all'))
 
-            if market_interval.lower() == 'hourly':
+            if market_interval.lower() == 'hourly' or market_interval.lower() == '30min':
                 range_buttons.append(dict(count=1, label='1 week', step='week', stepmode='backward'))
                 range_buttons.append(dict(count=3, label='3 day', step='day', stepmode='backward'))
                 range_buttons.append(dict(count=1, label='1 day', step='day', stepmode='backward'))
@@ -792,12 +799,12 @@ class ChartGenerator:
 
 
 if __name__ == '__main__':
-    config_path = 'config/config.ini'
+    config_path = '../../TeslaBot/config/config.ini'
     test_chart = 'chart.html'
     test_bucket = 'teslabot'
     test_webhosting_url = 'http://teslabot.s3-website-us-east-1.amazonaws.com/charts/'
 
-    chart_generator = ChartGenerator(100, 100, config_path=config_path,
+    chart_generator = ChartGenerator(100, 100, 100, config_path=config_path,
                                      pretrim=1,
                                      output_html=True, render_html=True, output_png=False,
                                      s3_webhosting_url=test_webhosting_url,
